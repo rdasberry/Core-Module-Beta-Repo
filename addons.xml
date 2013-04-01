@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addons>
+<addon id="repository.coremodule.betas" name="Core Module Beta Testing Repo" version="1.0.0" provider-name="eldorado">
+    <extension point="xbmc.addon.repository" name="Core Module Beta Testing Repo">
+        <info compressed="false">https://github.com/Eldorados/Core-Module-Beta-Repo/raw/master/addons.xml</info>
+        <checksum>https://github.com/Eldorados/Core-Module-Beta-Repo/raw/master/addons.xml.md5</checksum>
+        <datadir zip="true">https://github.com/Eldorados/Core-Module-Beta-Repo/raw/master/repo/</datadir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>This is used ONLY for beta testing</summary>
+        <description>Beta testing only!!!
+
+- URLResolver
+- Metahandlers
+- t0mm0.common/addon.common
+
+DO NOT INSTALL UNLESS YOU WISH TO PARTICIPATE IN BETA TESTING
+        </description>
+        <platform>all</platform>
+    </extension>
+</addon>
+
+<addon id="script.module.metahandler"
+	     name="metahandler"
+	     version="2.0.2.01"
+	     provider-name="Eldorado (inspired by anarchintosh, westcoast, daledude, t0mm0)">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0" />
+    <import addon="script.module.elementtree" version="1.2.7"/>
+    <import addon="script.module.t0mm0.common" version="1.1.0"/>
+	<import addon="script.module.myconnpy" version="0.3.2"/>
+  </requires>
+  <extension point="xbmc.python.module" library="lib" />
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+  </extension>
+</addon>
+
+<addon id="script.module.t0mm0.common"
+	     name="t0mm0's common stuff"
+	     version="2.1.0.01"
+	     provider-name="t0mm0">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0" />
+  </requires>
+  <extension point="xbmc.python.module" library="lib" />
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <summary lang="en">Collection of commonly used addon routines</summary>
+    <description lang="en">Collection of commonly used addon routines to simplify addon development.</description>
+  </extension>
+</addon>
+
+<addon id="script.module.urlresolver"
+     name="urlresolver"
+     version="2.0.9"
+     provider-name="XBMCHub.com">
+  <requires>
+    <import addon="xbmc.python" version="2.1.0" />
+    <import addon="script.module.t0mm0.common" version="1.0.0"/>
+    <import addon="plugin.video.youtube" version="3.3.0"/>
+  </requires>
+  <extension point="xbmc.python.module" library="lib" />
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <summary lang="en">Resolve common video host URL's to be playable in XBMC.</summary>
+    <description lang="en">Resolve common video host URL's to be playable in XBMC, simplify addon development of video plugins requiring multi video hosts.</description>
+  </extension>
+</addon>
+</addons>
