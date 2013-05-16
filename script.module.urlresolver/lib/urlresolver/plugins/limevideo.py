@@ -1,5 +1,5 @@
 '''
-Hugefiles urlresolver plugin
+Limevideo urlresolver plugin
 Copyright (C) 2013 Vinnydude
 
 This program is free software: you can redistribute it and/or modify
@@ -20,17 +20,15 @@ from t0mm0.common.net import Net
 from urlresolver.plugnplay.interfaces import UrlResolver
 from urlresolver.plugnplay.interfaces import PluginSettings
 from urlresolver.plugnplay import Plugin
-import re, xbmcgui, os, urllib2
+import re, xbmcgui
 from urlresolver import common
 from lib import jsunpack
 
-#SET ERROR_LOGO# THANKS TO VOINAGE, BSTRDMKR, ELDORADO
-error_logo = os.path.join(common.addon_path, 'resources', 'images', 'redx.png')
 net = Net()
 
-class HugefilesResolver(Plugin, UrlResolver, PluginSettings):
+class LimevideoResolver(Plugin, UrlResolver, PluginSettings):
     implements = [UrlResolver, PluginSettings]
-    name = "hugefiles"
+    name = "limevideo"
 
 
     def __init__(self):
@@ -43,47 +41,64 @@ class HugefilesResolver(Plugin, UrlResolver, PluginSettings):
         try:
             url = self.get_url(host, media_id)
             html = self.net.http_GET(url).content
-            if r:
-                raise Exception ('File Not Found or removed')
             dialog = xbmcgui.DialogProgress()
-            dialog.create('Resolving', 'Resolving Hugefiles Link...')       
+            dialog.create('Resolving', 'Resolving Limevideo Link...')       
             dialog.update(0)
-    
+
             data = {}
             r = re.findall(r'type="hidden" name="(.+?)"\s* value="?(.+?)">', html)
             for name, value in r:
                 data[name] = value
-                data.update({'method_free':'Free Download'})
+                data.update({'method_free':'Continue to Video'})
+                
+            html = net.http_POST(url, data).content
+            
+            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
+            result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+            solution = ''.join(str(int(num[1])-48) for num in result)
+
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+            for name, value in r:
+                data[name] = value
+                data.update({'code':solution})
+            
             html = net.http_POST(url, data).content
     
-            dialog.update(50)
-    
-            sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
+            sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
+            sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+            sPattern += '\s+?</script>'
             r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
-    
             if r:
-                sJavascript = r.group(1)
-                sUnpacked = jsunpack.unpack(sJavascript)
-                sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
-                sPattern += '"custommode='
-                r = re.search(sPattern, sUnpacked)
-                if r:
+    		sJavascript = r.group(1)
+		sUnpacked = jsunpack.unpack(sJavascript)
+		sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+		sPattern += '"custommode='
+		r = re.search(sPattern, sUnpacked)
+		if r:
                     dialog.update(100)
                     dialog.close()
-                    return r.group(1)
+		    return r.group(1)
 
-        except urllib2.URLError, e:
-            common.addon.log_error(self.name + ': got http error %d fetching %s' %
-                                   (e.code, web_url))
-            common.addon.show_small_popup('Error','Http error: '+str(e), 5000, error_logo)
-            return False
+            else:
+                num = re.compile('false\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|divx').findall(html)
+                for u1, u2, u3, u4 in num:
+                    urlz = u4+'.'+u3+'.'+u2+'.'+u1
+                pre = 'http://'+urlz+':182/d/'
+                preb = re.compile('custommode\|(.+?)\|(.+?)\|182').findall(html)
+                for ext, link in preb:
+                    r = pre+link+'/video.'+ext
+                    dialog.update(100)
+                    dialog.close()
+                    return r
+                
         except Exception, e:
-            common.addon.log_error('**** Hugefiles Error occured: %s' % e)
-            common.addon.show_small_popup(title='[B][COLOR white]HUGEFILES[/COLOR][/B]', msg='[COLOR red]%s[/COLOR]' % e, delay=5000, image=error_logo)
+            common.addon.log('**** Limevideo Error occured: %s' % e)
+            common.addon.show_small_popup('Error', str(e), 5000, '')
             return False
+            
         
     def get_url(self, host, media_id):
-        return 'http://hugefiles.net/%s' % media_id 
+        return 'http://www.limevideo.net/%s' % media_id 
         
 
     def get_host_and_id(self, url):
@@ -97,6 +112,6 @@ class HugefilesResolver(Plugin, UrlResolver, PluginSettings):
 
     def valid_url(self, url, host):
         if self.get_setting('enabled') == 'false': return False
-        return (re.match('http://(www.)?hugefiles.net/' +
+        return (re.match('http://(www.)?limevideo.net/' +
                          '[0-9A-Za-z]+', url) or
-                         'hugefiles' in host)
+                         'limevideo' in host)

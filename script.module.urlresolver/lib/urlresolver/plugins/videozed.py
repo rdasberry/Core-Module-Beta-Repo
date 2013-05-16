@@ -1,5 +1,5 @@
 '''
-Sharerepo urlresolver plugin
+Videozed urlresolver plugin
 Copyright (C) 2013 Vinnydude
 
 This program is free software: you can redistribute it and/or modify
@@ -20,18 +20,15 @@ from t0mm0.common.net import Net
 from urlresolver.plugnplay.interfaces import UrlResolver
 from urlresolver.plugnplay.interfaces import PluginSettings
 from urlresolver.plugnplay import Plugin
-import re, xbmcgui, os
+import re, xbmcgui
 from urlresolver import common
 from lib import jsunpack
 
-#SET ERROR_LOGO# THANKS TO VOINAGE, BSTRDMKR, ELDORADO
-error_logo = os.path.join(common.addon_path, 'resources', 'images', 'redx.png')
-
 net = Net()
 
-class SharerepoResolver(Plugin, UrlResolver, PluginSettings):
+class VideozedResolver(Plugin, UrlResolver, PluginSettings):
     implements = [UrlResolver, PluginSettings]
-    name = "sharerepo"
+    name = "videozed"
 
 
     def __init__(self):
@@ -45,7 +42,7 @@ class SharerepoResolver(Plugin, UrlResolver, PluginSettings):
             url = self.get_url(host, media_id)
             html = self.net.http_GET(url).content
             dialog = xbmcgui.DialogProgress()
-            dialog.create('Resolving', 'Resolving Sharerepo Link...')       
+            dialog.create('Resolving', 'Resolving Videozed Link...')       
             dialog.update(0)
 
             data = {}
@@ -54,36 +51,52 @@ class SharerepoResolver(Plugin, UrlResolver, PluginSettings):
                 data[name] = value
                 
             html = net.http_POST(url, data).content
-    
-            dialog.update(50)
-    
-            sPattern = '''<div id="player_code">.*?<script type='text/javascript'>(eval.+?)</script>'''
-            r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
+
+            captcha = re.compile("left:(\d+)px;padding-top:\d+px;'>&#(.+?);<").findall(html)
+            result = sorted(captcha, key=lambda ltr: int(ltr[0]))
+            solution = ''.join(str(int(num[1])-48) for num in result)
+
+            r = re.findall(r'type="hidden" name="(.+?)" value="(.+?)">', html)
+            for name, value in r:
+                data[name] = value
+                data.update({'code':solution})
             
+            html = net.http_POST(url, data).content
+    
+            sPattern =  '<script type=(?:"|\')text/javascript(?:"|\')>(eval\('
+            sPattern += 'function\(p,a,c,k,e,d\)(?!.+player_ads.+).+np_vid.+?)'
+            sPattern += '\s+?</script>'
+            r = re.search(sPattern, html, re.DOTALL + re.IGNORECASE)
             if r:
                 sJavascript = r.group(1)
                 sUnpacked = jsunpack.unpack(sJavascript)
-                sPattern  = '''("video/divx"src="|addVariable\('file',')(.+?)video[.]'''
-                r = re.search(sPattern, sUnpacked)              
+                sPattern  = '<embed id="np_vid"type="video/divx"src="(.+?)'
+                sPattern += '"custommode='
+                r = re.search(sPattern, sUnpacked)
                 if r:
-                    link = r.group(2) + fname
+                    dialog.update(100)
                     dialog.close()
-                    return link
-                raise Exception ('File Not Found or removed')
-            raise Exception ('File Not Found or removed')
+                    return r.group(1)
 
-        except urllib2.URLError, e:
-            common.addon.log_error(self.name + ': got http error %d fetching %s' %
-                                   (e.code, web_url))
-            common.addon.show_small_popup('Error','Http error: '+str(e), 8000, error_logo)
-            return False
+            else:
+                    num = re.compile('videozed\|(.+?)\|http').findall(html)
+                    pre = 'http://'+num[0]+'.videozed.com:182/d/'
+                    preb = re.compile('image\|(.+?)\|video\|(.+?)\|').findall(html)
+                    for ext, link in preb:
+                        r = pre+link+'/video.'+ext
+                        dialog.update(100)
+                        dialog.close()
+                        return r
+
         except Exception, e:
-            common.addon.log('**** sharerepo Error occured: %s' % e)
-            common.addon.show_small_popup(title='[B][COLOR white]SHAREREPO[/COLOR][/B]', msg='[COLOR red]%s[/COLOR]' % e, delay=5000, image=error_logo)
+            common.addon.log('**** Videozed Error occured: %s' % e)
+            common.addon.show_small_popup('Error', str(e), 5000, '')
             return False
             
+        
     def get_url(self, host, media_id):
-        return 'http://sharerepo.com/%s' % media_id 
+        print 'Videozed: in get_url %s %s' % (host, media_id)
+        return 'http://www.videozed.net/%s' % media_id 
         
 
     def get_host_and_id(self, url):
@@ -97,6 +110,6 @@ class SharerepoResolver(Plugin, UrlResolver, PluginSettings):
 
     def valid_url(self, url, host):
         if self.get_setting('enabled') == 'false': return False
-        return (re.match('http://(www.)?sharerepo.com/' +
+        return (re.match('http://(www.)?videozed.net/' +
                          '[0-9A-Za-z]+', url) or
-                         'sharerepo' in host)
+                         'videozed' in host)
